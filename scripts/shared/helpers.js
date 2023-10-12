@@ -3,37 +3,27 @@ const path = require('path')
 const parse = require('csv-parse')
 
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
-
-const ARBITRUM = 42161
-const AVALANCHE = 43114
+const MAINNET = 1666600000
 
 const {
-  ARBITRUM_URL,
-  AVAX_URL,
-  ARBITRUM_DEPLOY_KEY,
-  AVAX_DEPLOY_KEY
+  RPC_URL,
+  DEPLOYER_PK
 } = require("../../env.json")
 
 const providers = {
-  arbitrum: new ethers.providers.JsonRpcProvider(ARBITRUM_URL),
-  avax: new ethers.providers.JsonRpcProvider(AVAX_URL)
+  mainnet: new ethers.providers.JsonRpcProvider(RPC_URL)
 }
 
 const signers = {
-  arbitrum: new ethers.Wallet(ARBITRUM_DEPLOY_KEY).connect(providers.arbitrum),
-  avax: new ethers.Wallet(ARBITRUM_DEPLOY_KEY).connect(providers.avax)
-}
-
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  mainnet: new ethers.Wallet(DEPLOYER_PK).connect(providers.mainnet)
 }
 
 const readCsv = async (file) => {
   records = []
   const parser = fs
-  .createReadStream(file)
-  .pipe(parse({ columns: true, delimiter: ',' }))
-  parser.on('error', function(err){
+    .createReadStream(file)
+    .pipe(parse({ columns: true, delimiter: ',' }))
+  parser.on('error', function (err) {
     console.error(err.message)
   })
   for await (const record of parser) {
@@ -47,8 +37,8 @@ function getChainId(network) {
     return 42161
   }
 
-  if (network === "avax") {
-    return 43114
+  if (network === "mainnet") {
+    return 1666600000
   }
 
   throw new Error("Unsupported network")
@@ -56,7 +46,7 @@ function getChainId(network) {
 
 async function getFrameSigner() {
   try {
-    const frame = new ethers.providers.JsonRpcProvider("http://127.0.0.1:1248")
+    const frame = new ethers.providers.JsonRpcProvider("http://127.0.0.1:8545")
     const signer = frame.getSigner()
     if (getChainId(network) !== await signer.getChainId()) {
       throw new Error("Incorrect frame network")
@@ -72,7 +62,7 @@ async function sendTxn(txnPromise, label) {
   console.info(`Sending ${label}...`)
   await txn.wait()
   console.info(`... Sent! ${txn.hash}`)
-  await sleep(2000)
+  await sleep(2)
   return txn
 }
 
@@ -175,9 +165,31 @@ async function updateTokensPerInterval(distributor, tokensPerInterval, label) {
   await sendTxn(distributor.setTokensPerInterval(tokensPerInterval, { gasLimit: 500000 }), `${label}.setTokensPerInterval`)
 }
 
+/**
+ * Executes a shell command and return it as a Promise.
+ * @param cmd {string}
+ * @return {Promise<string>}
+ */
+function execShellCommand(cmd) {
+  const exec = require('child_process').exec
+  return new Promise((resolve) => {
+    exec(cmd, (error, stdout, stderr) => {
+      if (error) {
+        console.warn(error)
+      }
+      resolve(stdout ? stdout : stderr)
+    })
+  })
+}
+
+const sleep = async (seconds) => {
+  console.log(`Sleeping for ${seconds} seconds`)
+  await execShellCommand("sleep " + seconds);
+  console.log("END")
+}
+
 module.exports = {
-  ARBITRUM,
-  AVALANCHE,
+  MAINNET,
   providers,
   signers,
   readCsv,
@@ -189,5 +201,6 @@ module.exports = {
   readTmpAddresses,
   callWithRetries,
   processBatch,
-  updateTokensPerInterval
+  updateTokensPerInterval,
+  sleep
 }
