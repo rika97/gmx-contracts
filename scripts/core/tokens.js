@@ -2,6 +2,66 @@
 const { expandDecimals } = require("../../test/shared/utilities")
 
 module.exports = {
+  localhost: {
+    btcPriceFeed: { address: "0x264990fbd0A4796A3E3d8E37C4d5F87a3aCa5Ebf" },
+    ethPriceFeed: { address: "0x9ef1B8c0E4F7dc8bF5719Ea496883DC6401d5b2e" },
+    bnbPriceFeed: { address: "0x0567F2323251f0Aab15c8dFb1967E4e8A7D42aeE" },
+    busdPriceFeed: { address: "0xcBb98864Ef56E9042e7d2efef76141f15731B82f" },
+    usdcPriceFeed: { address: "0x51597f405303C4377E36123cBc172b13269EA163" },
+    usdtPriceFeed: { address: "0xB97Ad0E74fa7d920791E90258A6E2085088b4320" },
+    btc: {
+      name: "btc",
+      address: "0x7130d2a12b9bcbfae4f2634d864a1ee1ce3ead9c",
+      decimals: 18,
+      priceFeed: "0x264990fbd0A4796A3E3d8E37C4d5F87a3aCa5Ebf",
+      priceDecimals: 8,
+      isStrictStable: false
+    },
+    eth: {
+      name: "eth",
+      address: "0x2170ed0880ac9a755fd29b2688956bd959f933f8",
+      decimals: 18,
+      priceFeed: "0x9ef1B8c0E4F7dc8bF5719Ea496883DC6401d5b2e",
+      priceDecimals: 8,
+      isStrictStable: false
+    },
+    bnb: {
+      name: "bnb",
+      address: "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",
+      decimals: 18,
+      priceFeed: "0x0567F2323251f0Aab15c8dFb1967E4e8A7D42aeE",
+      priceDecimals: 8,
+      isStrictStable: false
+    },
+    busd: {
+      name: "busd",
+      address: "0xe9e7cea3dedca5984780bafc599bd69add087d56",
+      decimals: 18,
+      priceFeed: "0xcBb98864Ef56E9042e7d2efef76141f15731B82f",
+      priceDecimals: 8,
+      isStrictStable: true
+    },
+    usdc: {
+      name: "usdc",
+      address: "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d",
+      decimals: 18,
+      priceFeed: "0x51597f405303C4377E36123cBc172b13269EA163",
+      priceDecimals: 8,
+      isStrictStable: true
+    },
+    usdt: {
+      name: "usdt",
+      address: "0x55d398326f99059fF775485246999027B3197955",
+      decimals: 18,
+      priceFeed: "0xB97Ad0E74fa7d920791E90258A6E2085088b4320",
+      priceDecimals: 8,
+      isStrictStable: true
+    },
+    nativeToken: {
+      address: "0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83",
+      decimals: 18
+    }
+  },
   bsc: {
     btcPriceFeed: { address: "0x264990fbd0A4796A3E3d8E37C4d5F87a3aCa5Ebf" },
     ethPriceFeed: { address: "0x9ef1B8c0E4F7dc8bF5719Ea496883DC6401d5b2e" },
@@ -59,6 +119,58 @@ module.exports = {
     },
     nativeToken: {
       address: "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",
+      decimals: 18
+    }
+  },
+  mainnet: {
+    // https://data.chain.link/harmony/mainnet
+    btcPriceFeed: { address: "0x639545836d8b177054cefafe6942efe798ce6575" },
+    ethPriceFeed: { address: "0xbaf7c8149d586055ed02c286367a41e0ada96b7c" },
+    onePriceFeed: { address: "0xdcd81fbbd6c4572a69a534d8b8152c562da8abef" },
+    usdcPriceFeed: { address: "0xa45a41be2d8419b60a6ce2bc393a0b086b8b3bda" },
+    usdtPriceFeed: { address: "0x5caaebe5c69a8287bffb9d00b5231bf7254145bf" },
+    btc: {
+      name: "btc",
+      address: "0x118f50d23810c5E09Ebffb42d7D3328dbF75C2c2",
+      decimals: 8,
+      priceFeed: "0x639545836d8b177054cefafe6942efe798ce6575",
+      priceDecimals: 8,
+      isStrictStable: false
+    },
+    eth: {
+      name: "eth",
+      address: "0x4cc435d7b9557d54d6ef02d69bbf72634905bf11",
+      decimals: 18,
+      priceFeed: "0xbaf7c8149d586055ed02c286367a41e0ada96b7c",
+      priceDecimals: 8,
+      isStrictStable: false
+    },
+    one: {
+      name: "one",
+      address: "0xcf664087a5bb0237a0bad6742852ec6c8d69a27a",
+      decimals: 18,
+      priceFeed: "0xdcd81fbbd6c4572a69a534d8b8152c562da8abef",
+      priceDecimals: 8,
+      isStrictStable: false
+    },
+    usdc: {
+      name: "usdc",
+      address: "0xbc594cabd205bd993e7ffa6f3e9cea75c1110da5",
+      decimals: 6,
+      priceFeed: "0xa45a41be2d8419b60a6ce2bc393a0b086b8b3bda",
+      priceDecimals: 8,
+      isStrictStable: true
+    },
+    usdt: {
+      name: "usdt",
+      address: "0xf2732e8048f1a411c63e2df51d08f4f52e598005",
+      decimals: 6,
+      priceFeed: "0x5caaebe5c69a8287bffb9d00b5231bf7254145bf",
+      priceDecimals: 8,
+      isStrictStable: true
+    },
+    nativeToken: {
+      address: "0xcf664087a5bb0237a0bad6742852ec6c8d69a27a",
       decimals: 18
     }
   },
