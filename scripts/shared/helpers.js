@@ -83,7 +83,10 @@ async function callWithRetries(func, args, retriesCount = 3) {
   }
 }
 
-async function deployContract(name, args, label, options) {
+async function deployContract(name, args, label, options = {
+  gasLimit: 9721900,
+  gasPrice: 101000000000
+}) {
   if (!options && typeof label === "object") {
     label = null
     options = label
