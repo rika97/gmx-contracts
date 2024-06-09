@@ -6,13 +6,16 @@ const tokens = require('./core/tokens')[network];
 const gasLimit = 30000000
 const gov = { address: "0x49B373D422BdA4C6BfCdd5eC1E48A9a26fdA2F8b" }
 const { toUsd } = require("../test/shared/units")
-const { errors } = require("../test/core/Vault/helpers")
+const { errors } = require("../test/core/Vault/helpers");
+const { ADDRESS_ZERO } = require('@uniswap/v3-sdk');
 const { AddressZero } = ethers.constants
-const weth = { address: "0xC360D44d9021E0d9D2781a6c5c269D209F43dAa7" }
-const wallet = { address: "0x5F799f365Fa8A2B60ac0429C48B153cA5a6f0Cf8" }
+const weth = { address: "0xcF664087a5bB0237a0BAd6742852ec6c8d69A27a" }
+const wallet = { address: "0xcDF2A6446cd43B541fC768195eFE1f82c846F953" }
 const bnAlp = { address: AddressZero }
 const alp = { address: AddressZero }
 const vestingDuration = 365 * 24 * 60 * 60
+
+const busdAddress = "0x1Aa1F7815103c0700b98f24138581b88d4cf9769";
 
 async function main() {
     const { nativeToken } = tokens
@@ -324,6 +327,72 @@ async function main() {
 
     await sendTxn(bnGmx.mint(bonusGmxDistributor.address, expandDecimals(15 * 1000 * 1000, 18)), "bnGmx.mint(bonusGmxDistributor)")
     await sleep(1)
+
+    const depositFee = 50
+    const minExecutionFee = 4000
+
+    await deployContract("PositionRouter", [
+        addresses.Vault,
+        router.address,
+        weth.address,
+        addresses.ShortsTracker,
+        depositFee,
+        minExecutionFee
+    ], "PositionRouter")
+
+    await deployContract("PositionManager", [
+        addresses.Vault,
+        addresses.Reader,
+        addresses.ShortsTracker,
+        busdAddress,
+        50,
+        ADDRESS_ZERO
+    ], "PositionManager")
+
+    ///////////////// addLiquidity TESTING ////////////////
+    let bnb = await deployContract("Token", [])
+
+    await bnb.mint(deployer.address, expandDecimals(1, 20))
+
+    console.log('balanceOf', Number(await bnb.balanceOf(deployer.address)));
+
+    let priceFeed = await deployContract("PriceFeed", [], "PriceFeed");
+
+    await sendTxn(priceFeed.setLatestAnswer(toChainlinkPrice(1)), 'priceFeed.setLatestAnswer');
+
+    await sendTxn(vaultPriceFeed.setTokenConfig(
+        bnb.address,
+        priceFeed.address,
+        18,
+        false
+    ), 'vaultPriceFeed.setTokenConfig');
+
+    await sendTxn(vault.setTokenConfig(
+        bnb.address, // _token
+        18, // _tokenDecimals
+        10000, // _tokenWeight
+        75, // _minProfitBps
+        expandDecimals(1, 32),
+        false, // _isStable
+        false // _isShortable
+    ), 'vault.setTokenConfig');
+
+    console.log('getMinPrice', Number(await vault.getMinPrice(bnb.address)));
+
+    await sendTxn(bnb.approve(glpManager.address, expandDecimals(1, 20)), 'bnb.aprove');
+
+    await sendTxn(glpManager.setInPrivateMode(false), 'glpManager.setInPrivateMode(false)');
+
+    await sendTxn(glpManager.addLiquidity(
+        bnb.address,
+        expandDecimals(1, 18),
+        expandDecimals(1, 7),
+        expandDecimals(1, 7),
+    ), 'glpManager.addLiquidity');
+}
+
+function toChainlinkPrice(value) {
+    return parseInt(value * Math.pow(10, 8))
 }
 
 main()
