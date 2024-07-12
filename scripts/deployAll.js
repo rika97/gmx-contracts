@@ -2,25 +2,24 @@ const { etheres } = require('hardhat')
 const { deployContract, sendTxn, writeTmpAddresses, callWithRetries, sleep, getFrameSigner } = require("./shared/helpers")
 const { expandDecimals } = require("../test/shared/utilities")
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
-const tokens = require('./core/tokens')[network];
 const gasLimit = 30000000
 const gov = { address: "0x49B373D422BdA4C6BfCdd5eC1E48A9a26fdA2F8b" }
 const { toUsd } = require("../test/shared/units")
 const { errors } = require("../test/core/Vault/helpers");
 const { ADDRESS_ZERO } = require('@uniswap/v3-sdk');
 const { AddressZero } = ethers.constants
-const weth = { address: "0xcF664087a5bB0237a0BAd6742852ec6c8d69A27a" }
+let weth = { address: "0xcF664087a5bB0237a0BAd6742852ec6c8d69A27a" }
 const wallet = { address: "0xcDF2A6446cd43B541fC768195eFE1f82c846F953" }
 const bnAlp = { address: AddressZero }
 const alp = { address: AddressZero }
 const vestingDuration = 365 * 24 * 60 * 60
 
-const busdAddress = "0x1Aa1F7815103c0700b98f24138581b88d4cf9769";
-
 async function main() {
-    const { nativeToken } = tokens
+    // const { nativeToken } = tokens
     const [deployer] = await ethers.getSigners()
     wallet.address = deployer.address
+
+    const nativeToken = weth
 
     // deployed addresses
     const addresses = {
@@ -210,8 +209,18 @@ async function main() {
     await sendTxn(feeGmxDistributor.updateLastDistributionTime(), "feeGmxDistributor.updateLastDistributionTime")
     await sleep(1)
 
-    const feeGlpTracker = { address: AddressZero }
-    const stakedGlpTracker = { address: AddressZero }
+    // const feeGlpTracker = { address: AddressZero }
+    // const stakedGlpTracker = { address: AddressZero }
+
+    const feeGlpTracker = await deployContract("RewardTracker", ["Fee GLP", "fGLP"])
+    const feeGlpDistributor = await deployContract("RewardDistributor", [nativeToken.address, feeGlpTracker.address])
+    await sendTxn(feeGlpTracker.initialize([glp.address], feeGlpDistributor.address), "feeGlpTracker.initialize")
+    await sendTxn(feeGlpDistributor.updateLastDistributionTime(), "feeGlpDistributor.updateLastDistributionTime")
+
+    const stakedGlpTracker = await deployContract("RewardTracker", ["Fee + Staked GLP", "fsGLP"])
+    const stakedGlpDistributor = await deployContract("RewardDistributor", [esGmx.address, stakedGlpTracker.address])
+    await sendTxn(stakedGlpTracker.initialize([feeGlpTracker.address], stakedGlpDistributor.address), "stakedGlpTracker.initialize")
+    await sendTxn(stakedGlpDistributor.updateLastDistributionTime(), "stakedGlpDistributor.updateLastDistributionTime")
 
     const stakedAlpTracker = { address: AddressZero }
     const bonusAlpTracker = { address: AddressZero }
@@ -275,6 +284,19 @@ async function main() {
         gmxVester.address,
         glpVested.address
     ), "rewardRouter.initialize")
+
+    await sendTxn(feeGlpTracker.setInPrivateTransferMode(true), "feeGlpTracker.setInPrivateTransferMode")
+    await sendTxn(feeGlpTracker.setInPrivateStakingMode(true), "feeGlpTracker.setInPrivateStakingMode")
+
+    // allow stakedGlpTracker to stake feeGlpTracker
+    await sendTxn(feeGlpTracker.setHandler(stakedGlpTracker.address, true), "feeGlpTracker.setHandler(stakedGlpTracker)")
+    // allow feeGlpTracker to stake glp
+    await sendTxn(glp.setHandler(feeGlpTracker.address, true), "glp.setHandler(feeGlpTracker)")
+
+    // allow rewardRouter to stake in feeGlpTracker
+    await sendTxn(feeGlpTracker.setHandler(rewardRouter.address, true), "feeGlpTracker.setHandler(rewardRouter)")
+    // allow rewardRouter to stake in stakedGlpTracker
+    await sendTxn(stakedGlpTracker.setHandler(rewardRouter.address, true), "stakedGlpTracker.setHandler(rewardRouter)")
 
     // allow rewardRouter to stake in stakedGmxTracker
     await sendTxn(stakedGmxTracker.setHandler(rewardRouter.address, true), "stakedGmxTracker.setHandler(rewardRouter)")
@@ -340,55 +362,64 @@ async function main() {
         minExecutionFee
     ], "PositionRouter")
 
+    const busd = { address: "0x1Aa1F7815103c0700b98f24138581b88d4cf9769" }
+
     await deployContract("PositionManager", [
         addresses.Vault,
         addresses.Reader,
         addresses.ShortsTracker,
-        busdAddress,
+        busd.address,
         50,
         ADDRESS_ZERO
     ], "PositionManager")
 
-    ///////////////// addLiquidity TESTING ////////////////
-    let bnb = await deployContract("Token", [])
+    await sendTxn(glpManager.setHandler(rewardRouter.address, true), 'glpManager.setHandler');
 
-    await bnb.mint(deployer.address, expandDecimals(1, 20))
-
-    console.log('balanceOf', Number(await bnb.balanceOf(deployer.address)));
-
+    ///////////////// Add BUSD Token ////////////////
     let priceFeed = await deployContract("PriceFeed", [], "PriceFeed");
 
     await sendTxn(priceFeed.setLatestAnswer(toChainlinkPrice(1)), 'priceFeed.setLatestAnswer');
 
     await sendTxn(vaultPriceFeed.setTokenConfig(
-        bnb.address,
+        busd.address,
         priceFeed.address,
         18,
         false
     ), 'vaultPriceFeed.setTokenConfig');
 
     await sendTxn(vault.setTokenConfig(
-        bnb.address, // _token
+        busd.address, // _token
         18, // _tokenDecimals
         10000, // _tokenWeight
         75, // _minProfitBps
         expandDecimals(1, 32),
-        false, // _isStable
-        false // _isShortable
+        true, // _isStable
+        true // _isShortable
     ), 'vault.setTokenConfig');
 
-    console.log('getMinPrice', Number(await vault.getMinPrice(bnb.address)));
+    ///////////////// Add WONE Token ////////////////
+    priceFeed = await deployContract("PriceFeed", [], "PriceFeed");
 
-    await sendTxn(bnb.approve(glpManager.address, expandDecimals(1, 20)), 'bnb.aprove');
+    await sendTxn(priceFeed.setLatestAnswer(toChainlinkPrice(0.02)), 'priceFeed.setLatestAnswer');
 
-    await sendTxn(glpManager.setInPrivateMode(false), 'glpManager.setInPrivateMode(false)');
+    await sendTxn(vaultPriceFeed.setTokenConfig(
+        weth.address,
+        priceFeed.address,
+        18,
+        false
+    ), 'vaultPriceFeed.setTokenConfig');
 
-    await sendTxn(glpManager.addLiquidity(
-        bnb.address,
-        expandDecimals(1, 18),
-        expandDecimals(1, 7),
-        expandDecimals(1, 7),
-    ), 'glpManager.addLiquidity');
+    await sendTxn(vault.setTokenConfig(
+        weth.address, // _token
+        18, // _tokenDecimals
+        10000, // _tokenWeight
+        75, // _minProfitBps
+        expandDecimals(1, 32),
+        true, // _isStable
+        true // _isShortable
+    ), 'vault.setTokenConfig');
+
+    console.log(addresses);
 }
 
 function toChainlinkPrice(value) {
