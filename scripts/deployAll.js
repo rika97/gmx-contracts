@@ -45,6 +45,14 @@ async function main() {
         RewardRouter: "",
         VesterGMX: "",
         VestedGLP: "",
+        StakedGmxTracker: "",
+        BonusGmxTracker: "",
+        FeeGmxTracker: "",
+        StakedGlpTracker: "",
+        FeeGlpTracker: "",
+        OrderBook: "",
+        OrderBookReader: "",
+        TokenManager: "",
     }
 
     // 1 - Reader ------------------------------------------------------------------
@@ -180,6 +188,7 @@ async function main() {
     // 15 - RewardTracker ----------------------------------------------------------
     const stakedGmxTracker = await deployContract("RewardTracker", ["Staked GMX", "sGMX"])
     addresses.sGMX = stakedGmxTracker.address
+    addresses.StakedGmxTracker = stakedGmxTracker.address
     await sleep(1)
 
     // 15 - RewardTracker ----------------------------------------------------------
@@ -193,6 +202,7 @@ async function main() {
 
     // 16 - Staked + Bonus GMX --------------------------------------------------------------------
     const bonusGmxTracker = await deployContract("RewardTracker", ["Staked + Bonus GMX", "sbGMX"])
+    addresses.BonusGmxTracker = bonusGmxTracker.address;
     const bonusGmxDistributor = await deployContract("BonusDistributor", [bnGmx.address, bonusGmxTracker.address])
     await sendTxn(bonusGmxTracker.initialize([stakedGmxTracker.address], bonusGmxDistributor.address), "bonusGmxTracker.initialize")
     await sendTxn(bonusGmxDistributor.updateLastDistributionTime(), "bonusGmxDistributor.updateLastDistributionTime")
@@ -200,6 +210,7 @@ async function main() {
     // 17 - Staked + Bonus + Fee GMX --------------------------------------------------------------------
     const feeGmxTracker = await deployContract("RewardTracker", ["Staked + Bonus + Fee GMX", "sbfGMX"])
     addresses.sbfGMX = feeGmxTracker.address
+    addresses.FeeGmxTracker = feeGmxTracker.address
     await sleep(1)
     const feeGmxDistributor = await deployContract("RewardDistributor", [weth.address, feeGmxTracker.address])
     addresses.sbfGMXDistributor = feeGmxDistributor.address
@@ -209,22 +220,19 @@ async function main() {
     await sendTxn(feeGmxDistributor.updateLastDistributionTime(), "feeGmxDistributor.updateLastDistributionTime")
     await sleep(1)
 
-    // const feeGlpTracker = { address: AddressZero }
-    // const stakedGlpTracker = { address: AddressZero }
-
     const feeGlpTracker = await deployContract("RewardTracker", ["Fee GLP", "fGLP"])
+    addresses.FeeGlpTracker = feeGlpTracker.address
     const feeGlpDistributor = await deployContract("RewardDistributor", [nativeToken.address, feeGlpTracker.address])
     await sendTxn(feeGlpTracker.initialize([glp.address], feeGlpDistributor.address), "feeGlpTracker.initialize")
     await sendTxn(feeGlpDistributor.updateLastDistributionTime(), "feeGlpDistributor.updateLastDistributionTime")
 
     const stakedGlpTracker = await deployContract("RewardTracker", ["Fee + Staked GLP", "fsGLP"])
+    addresses.StakedGlpTracker = stakedGlpTracker.address
     const stakedGlpDistributor = await deployContract("RewardDistributor", [esGmx.address, stakedGlpTracker.address])
     await sendTxn(stakedGlpTracker.initialize([feeGlpTracker.address], stakedGlpDistributor.address), "stakedGlpTracker.initialize")
     await sendTxn(stakedGlpDistributor.updateLastDistributionTime(), "stakedGlpDistributor.updateLastDistributionTime")
 
-    const stakedAlpTracker = { address: AddressZero }
-    const bonusAlpTracker = { address: AddressZero }
-    const feeAlpTracker = { address: AddressZero }
+    ////////    
 
     await sendTxn(stakedGmxTracker.setInPrivateTransferMode(true), "stakedGmxTracker.setInPrivateTransferMode")
     await sleep(1)
@@ -350,80 +358,125 @@ async function main() {
     await sendTxn(bnGmx.mint(bonusGmxDistributor.address, expandDecimals(15 * 1000 * 1000, 18)), "bnGmx.mint(bonusGmxDistributor)")
     await sleep(1)
 
-    const depositFee = 50
-    const minExecutionFee = 4000
+    // 20 - OrderBook --------------------------------------------------------------    
 
-    await deployContract("PositionRouter", [
+    /*********************************************/
+    /***************** ORDER BOOK ****************/
+    /*********************************************/
+
+    const orderBook = await deployContract("OrderBook", []);
+
+    addresses.OrderBook = orderBook.address;
+
+    // Arbitrum mainnet addresses
+    await sendTxn(orderBook.initialize(
+        addresses.Router,
         addresses.Vault,
-        router.address,
-        weth.address,
-        addresses.ShortsTracker,
-        depositFee,
-        minExecutionFee
-    ], "PositionRouter")
+        nativeToken.address, // weth
+        addresses.USDG,
+        "10000000000000000", // 0.01 AVAX
+        expandDecimals(10, 30) // min purchase token amount usd
+    ), "orderBook.initialize");
 
-    const busd = { address: "0x1Aa1F7815103c0700b98f24138581b88d4cf9769" }
+    /*********************************************/
+    /*************** ORDER EXECUTOR **************/
+    /*********************************************/
 
-    await deployContract("PositionManager", [
-        addresses.Vault,
-        addresses.Reader,
-        addresses.ShortsTracker,
-        busd.address,
-        50,
-        ADDRESS_ZERO
-    ], "PositionManager")
+    // const orderExecutor = await deployContract("OrderExecutor", [addresses.Vault, orderBook.address])
+
+    // addresses.OrderExecutor = orderExecutor.addresses;
+
+    /*********************************************/
+    /************* ORDER BOOK READER *************/
+    /*********************************************/
+
+    const orderBookReader = await deployContract("OrderBookReader", [])
+
+    addresses.OrderBookReader = orderBookReader.address;
+
+    /*********************************************/
+    /*************** TOKEN MANAGER ***************/
+    /*********************************************/
+
+    const tokenManager = await deployContract("TokenManager", [4], "TokenManager")
+
+    addresses.TokenManager = tokenManager.address;
+
+    const signers = [
+        wallet.address
+    ]
+
+    await sendTxn(tokenManager.initialize(signers), "tokenManager.initialize")
+
+    /*********************************************/
+    /************* REFERRAL STORAGE **************/
+    /*********************************************/
+
+    const referralStorage = await deployContract("ReferralStorage", [])
+
+    /*********************************************/
+    /************** REFERRAL READER **************/
+    /*********************************************/
+
+    const referralReader = await deployContract("ReferralReader", [], "ReferralReader")
+
+    /*********************************************/
+    /****************** TIMELOCK *****************/
+    /*********************************************/
+
+    const buffer = 24 * 60 * 60
+    const maxTokenSupply = expandDecimals("13250000", 18)
+
+    const timelock = await deployContract("Timelock", [
+        wallet.address, // admin
+        buffer, // buffer
+        tokenManager.address, // tokenManager
+        tokenManager.address, // mintReceiver
+        glpManager.address, // glpManager
+        rewardRouter.address, // rewardRouter
+        maxTokenSupply, // maxTokenSupply
+        10, // marginFeeBasisPoints 0.1%
+        500 // maxMarginFeeBasisPoints 5%
+    ], "Timelock")
+
+    // await sendTxn(timelock.setContractHandler(orderExecutor.address, true), "timelock.setContractHandler(orderExecutor)")
+
+    // 21 - PositionRouter --------------------------------------------------------------    
+
+    /*********************************************/
+    /************** POSITION ROUTER **************/
+    /*********************************************/
+
+    const depositFee = "30" // 0.3%
+    const minExecutionFee = "3000000000000" // 0.0003 ETH
+
+    const positionRouter = await deployContract("PositionRouter", [vault.address, router.address, nativeToken.address, addresses.ShortsTracker, depositFee, minExecutionFee], "PositionRouter")
+
+    await sendTxn(positionRouter.setReferralStorage(referralStorage.address), "positionRouter.setReferralStorage")
+    await sendTxn(referralStorage.setHandler(positionRouter.address, true), "referralStorage.setHandler(positionRouter)")
+
+    await sendTxn(router.addPlugin(positionRouter.address), "router.addPlugin")
+
+    await sendTxn(positionRouter.setDelayValues(1, 180, 30 * 60), "positionRouter.setDelayValues")
+    // await sendTxn(timelock.setContractHandler(positionRouter.address, true), "timelock.setContractHandler(positionRouter)")
+
+    /*********************************************/
+    /************** POSITION MANAGER *************/
+    /*********************************************/
+
+    const orderKeeper = { address: wallet.address }
+    const liquidator = { address: wallet.address }
+
+    const positionManager = await deployContract("PositionManager", [vault.address, router.address, addresses.ShortsTracker, weth.address, depositFee, orderBook.address])
+    await sendTxn(positionManager.setOrderKeeper(orderKeeper.address, true), "positionManager.setOrderKeeper(orderKeeper)")
+    await sendTxn(positionManager.setLiquidator(liquidator.address, true), "positionManager.setLiquidator(liquidator)")
+    await sendTxn(timelock.setContractHandler(positionManager.address, true), "timelock.setContractHandler(positionRouter)")
+    // await sendTxn(timelock.setLiquidator(vault.address, positionManager.address, true), "timelock.setLiquidator(vault, positionManager, true)")
+    await sendTxn(router.addPlugin(positionManager.address), "router.addPlugin(positionManager)")
 
     await sendTxn(glpManager.setHandler(rewardRouter.address, true), 'glpManager.setHandler');
 
-    ///////////////// Add BUSD Token ////////////////
-    let priceFeed = await deployContract("PriceFeed", [], "PriceFeed");
-
-    await sendTxn(priceFeed.setLatestAnswer(toChainlinkPrice(1)), 'priceFeed.setLatestAnswer');
-
-    await sendTxn(vaultPriceFeed.setTokenConfig(
-        busd.address,
-        priceFeed.address,
-        18,
-        false
-    ), 'vaultPriceFeed.setTokenConfig');
-
-    await sendTxn(vault.setTokenConfig(
-        busd.address, // _token
-        18, // _tokenDecimals
-        10000, // _tokenWeight
-        75, // _minProfitBps
-        expandDecimals(1, 32),
-        true, // _isStable
-        true // _isShortable
-    ), 'vault.setTokenConfig');
-
-    ///////////////// Add WONE Token ////////////////
-    priceFeed = await deployContract("PriceFeed", [], "PriceFeed");
-
-    await sendTxn(priceFeed.setLatestAnswer(toChainlinkPrice(0.02)), 'priceFeed.setLatestAnswer');
-
-    await sendTxn(vaultPriceFeed.setTokenConfig(
-        weth.address,
-        priceFeed.address,
-        18,
-        false
-    ), 'vaultPriceFeed.setTokenConfig');
-
-    await sendTxn(vault.setTokenConfig(
-        weth.address, // _token
-        18, // _tokenDecimals
-        10000, // _tokenWeight
-        75, // _minProfitBps
-        expandDecimals(1, 32),
-        true, // _isStable
-        true // _isShortable
-    ), 'vault.setTokenConfig');
-
     console.log(addresses);
-}
-
-function toChainlinkPrice(value) {
-    return parseInt(value * Math.pow(10, 8))
 }
 
 main()
