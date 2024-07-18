@@ -28,7 +28,7 @@ async function getHarmonyValues(signer) {
   const tokenArr = [wone]
   const fastPriceTokens = [wone]
 
-  const priceFeedTimelock = { address: "0xC5837D0acFbA7b6EECD964C18ff1DeCCC9b57A35" }
+  const priceFeedTimelock = { address: "0xa1F71849aF41e1d3D8D7bC7316f59Fda126C387a" }
 
   const updaters = [wallet.address]
 

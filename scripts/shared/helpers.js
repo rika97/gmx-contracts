@@ -48,6 +48,8 @@ async function getFrameSigner() {
   try {
     const frame = new ethers.providers.JsonRpcProvider("http://127.0.0.1:8545")
     const signer = frame.getSigner()
+    const chainId = await signer.getChainId();
+    console.log("Chain ID from signer:", chainId);
     if (getChainId(network) !== await signer.getChainId()) {
       throw new Error("Incorrect frame network")
     }

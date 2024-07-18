@@ -7,7 +7,7 @@ async function main() {
   const [deployer] = await ethers.getSigners()
   wallet.address = deployer.address
 
-  const signer = await getFrameSigner()
+  // const signer = await getFrameSigner()
 
   const admin = wallet.address
   const buffer = 24 * 60 * 60
@@ -20,7 +20,7 @@ async function main() {
     tokenManager
   ], "Timelock")
 
-  const deployedTimelock = await contractAt("PriceFeedTimelock", timelock.address, signer)
+  // const deployedTimelock = await contractAt("PriceFeedTimelock", timelock.address, signer)
 
   const signers = [
     wallet.address
