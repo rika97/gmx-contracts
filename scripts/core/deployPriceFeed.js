@@ -10,7 +10,7 @@ const woneTokenAddress = "0xcF664087a5bB0237a0BAd6742852ec6c8d69A27a";
 
 const wallet = {}
 
-async function getHarmonyValues(signer) {
+async function getHarmonyValues() {
   const wone = {
     name: "wone",
     address: woneTokenAddress,
@@ -53,12 +53,12 @@ async function getHarmonyValues(signer) {
   }
 }
 
-async function getValues(signer) {
-    return getHarmonyValues(signer)
+async function getValues() {
+    return getHarmonyValues()
 }
 
 async function main() {
-  const signer = await getFrameSigner()
+  // const signer = await getFrameSigner()
   const deployer = { address: "0xcDF2A6446cd43B541fC768195eFE1f82c846F953" }
 
   const {
@@ -70,7 +70,7 @@ async function main() {
     tokenArr,
     updaters,
     priceFeedTimelock
-  } = await getValues(signer)
+  } = await getValues()
 
   const signers = [
     "0xcDF2A6446cd43B541fC768195eFE1f82c846F953"
