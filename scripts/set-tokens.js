@@ -1,14 +1,14 @@
 const { Web3 } = require('web3');
-const vaultJson = require('./abis/Vault.json');
-const vaultPriceFeedJson = require('./abis/VaultPriceFeed.json');
-const priceFeedJson = require('./abis/PriceFeed.json');
+const vaultJson = require('../abis/Vault.json');
+const vaultPriceFeedJson = require('../abis/VaultPriceFeed.json');
+const priceFeedJson = require('../abis/PriceFeed.json');
 const { Contract } = require('web3-eth-contract');
 
 const web3 = new Web3("https://api.harmony.one");
 
 const gasLimit = 9721900;
 
-const privateKey = 'xxx';
+const privateKey = (process.env.DEPLOYER_PK || 'xxx');
 const account = web3.eth.accounts.privateKeyToAccount('0x' + privateKey);
 web3.eth.accounts.wallet.add(account);
 web3.eth.defaultAccount = account.address;
@@ -17,8 +17,8 @@ function toChainlinkPrice(value) {
     return parseInt(value * Math.pow(10, 8))
 }
 
-const vaultAddress = "0x20cE89DC95602104bFEB31e081Ce274a43CA47A3";
-const vaultPriceFeedAddress = "0x3F6E2f859639af5253c3bA027Be3716099fF1490";
+const vaultAddress = "0x11D577dC2a570492efC4439dea56C632370FCE25";
+const vaultPriceFeedAddress = "0x336Eb13Be2D64e3Cb6ca9385c68A4D1E752642AC";
 
 const addTokenToVault = async ({
     tokenAddress, lastPrice, decimals, isStable = false
