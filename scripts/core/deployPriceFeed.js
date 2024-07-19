@@ -5,7 +5,7 @@ const { toUsd } = require("../../test/shared/units")
 const network = (process.env.HARDHAT_NETWORK || 'mainnet');
 const tokens = require('./tokens')[network];
 
-const priceFeedAddressWONE = "0x2C5E75a0d4ad94961EBEf4bFCFDEe284B7BD18c6";
+const priceFeedAddressWONE = "0x4035cF8C554213Ff753B2442a733849940beA836";
 const woneTokenAddress = "0xcF664087a5bB0237a0BAd6742852ec6c8d69A27a";
 
 const wallet = {}
@@ -34,7 +34,7 @@ async function getHarmonyValues() {
 
   const tokenManager = { address: wallet.address }
 
-  const positionRouter = await contractAt("PositionRouter", "0xf3f6484E2C01961Eb0Fd4217a5d7D57A791B7771")
+  const positionRouter = await contractAt("PositionRouter", "0x1734B4A53b2B060bF8E50Cc85A42Fbb4D1209eFe")
       
   // const fastPriceEvents = await contractAt("FastPriceEvents", "0x4530b7DE1958270A2376be192a24175D795e1b07", signer)
   const fastPriceEvents = await deployContract("FastPriceEvents", [])
@@ -59,7 +59,7 @@ async function getValues() {
 
 async function main() {
   // const signer = await getFrameSigner()
-  const deployer = { address: "0xcDF2A6446cd43B541fC768195eFE1f82c846F953" }
+  const deployer = { address: "0x82BD5fD0F73bA74f335917991519b151f7eD6E02" }
 
   const {
     fastPriceTokens,
@@ -73,7 +73,7 @@ async function main() {
   } = await getValues()
 
   const signers = [
-    "0xcDF2A6446cd43B541fC768195eFE1f82c846F953"
+    "0x82BD5fD0F73bA74f335917991519b151f7eD6E02"
     // "0x82429089e7c86B7047b793A9E7E7311C93d2b7a6", // coinflipcanada
     // "0x1D6d107F5960A66f293Ac07EDd08c1ffE79B548a", // G Account 1
     // "0xD7941C4Ca57a511F21853Bbc7FBF8149d5eCb398", // G Account 2
